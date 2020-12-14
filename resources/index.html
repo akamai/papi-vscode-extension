@@ -1,0 +1,75 @@
+`<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Akamai Property Manager</title>
+  <link rel='stylesheet' type='text/css' href='${styleUri}' media='screen' />
+  <script src='https://code.jquery.com/jquery-1.9.1.min.js'></script>
+  <script src='${scriptUri}'></script>
+</head>
+
+<body>
+  <h1>Property Manager</h1>
+
+  <div class='container' id='allFormsDiv'>
+    <div id='links'>
+      </br><a class='link' id='configureEdgerc'>Back to authentication</a></br>
+      <div id='externalLinksDiv'>
+        <a class='link' id='downloadLink'>Download a rules file</a></br>
+        <a class='link' id='useLocalink'>Use a local rules file</a>
+      </div>
+    </div>
+    <div id='edgercDiv'>
+      <h2 id='edgercHeading'>Authenticate to Akamai platform</h2>
+      <form id='edgercForm' class='form' enctype='text/plain'>
+        <label for='edgercFile'>Edgerc file</label>
+        <input type='file' id='edgercFile' name='edgercFile' required>
+        <label for='section'>EdgeGrid credentials</label>
+        <select id='section' name='section' required>
+        </select>
+        <label for='accountSwitchKey'>Optional: Account Switch Key</label>
+        <input type='text' id='accountSwitchKey' name='accountSwitchKey' placeholder='Enter the key'>
+        <button id='button0'>Authenticate</button>
+      </form>
+    </div>
+
+    <div id='externalFormsDiv'>
+      <div id='downloadDiv'>
+        <h2 id='downloadHeading'>Download a rules file</h2>
+        <form id='downloadForm' class='form' enctype='text/plain'>
+          <label for='propertyName'>Property name</label>
+          <input type='text' id='propertyName' name='propertyName' placeholder='example.com' required>
+          <div id='search'>
+            <div id='search-item'>
+            <img src="${searchUri}" alt="search"></div>
+          </div>
+          <label for='propertyVersion'>Property version</label>
+          <select id='propertyVersion' name='propertyVersion' required>
+            <option value = ''>-- select a version --</option>
+          </select>
+          <button id='button1'>Download</button>
+        </form>
+      </div>
+
+      <div id='useLocalDiv'>
+        <h2 id=useLocalHeading>Use a local rules file</h2>
+        <form id='useLocalForm' class='form' enctype='text/plain'>
+          <label for='filePath'>File selected</label>
+          <input type='text' id='filePath' name='filePath' required>
+          <label for='propertyName1'>Property name</label>
+          <input type='text' id='propertyName1' name='propertyName1' required readonly>
+          <button id='button2'>Edit</button>
+          <button id='button3'>Validate</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class='loader' id='loader'></div>
+  <article id='searchUri' data-uri='${searchUri}'></article>
+  <article id='tickUri' data-uri='${tickUri}'></article>
+  <article id='crossUri' data-uri='${crossUri}'></article>
+</body>
+
+</html>`
