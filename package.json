@@ -2,7 +2,8 @@
   "name": "papi",
   "displayName": "Property Manager",
   "description": "Extension for Akamai Property Manager",
-  "version": "0.9.0-beta.0",
+  "version": "0.9.0",
+  "icon": "media/Akamai_Logo_no-tagline_Full-Color_RGB.png",
   "publisher": "Akamai",
   "engines": {
     "vscode": "^1.47.0"
@@ -12,8 +13,23 @@
     "url": "https://github.com/akamai/papi-vscode-extension"
   },
   "categories": [
+    "Snippets",
+    "Testing",
+    "Formatters",
     "Other"
   ],
+  "keywords": [
+    "akamai",
+    "rules",
+    "ruletree",
+    "papi",
+    "Property Manager",
+    "JSON"
+  ],
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
   "activationEvents": [
     "onCommand:papi.edit",
     "onCommand:papi.validate"
