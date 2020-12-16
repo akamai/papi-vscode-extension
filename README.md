@@ -20,15 +20,15 @@ With admin access to Akamai Control Center, you can configure your own tokens an
 1. Launch [Identity and Access Management](https://control.akamai.com/apps/identity-management/). In Akamai Control Center, click <span style="font-size:large;font-weight:bold">&Congruent;</span> &rArr; ACCOUNT ADMIN &rArr; Identity & access.
 2. From the **Users and API Clients** tab, click **New API client for me** to open the *Customize API client* screen.
 3. Follow one of the scenarios:
-   a. To instantly create an API client and credentials for the Akamai APIs you can access, click **Quick**. This client’s API access levels, group roles, and permissions are identical to yours. For details about roles, permissions, and access levels, see [Identity and Access Management](https://control.akamai.com/dl/IDM/IAM/index.html).
-   b. To make updates to one or more of the accounts you manage, click **Advanced**. In the *Details* section, select **Let this client manage multiple accounts** . For details, see [Manage multiple accounts with one API client](https://control.akamai.com/wh/CUSTOMER/AKAMAI/en-US/WEBHELP/identity-management/idm-help/GUID-D05CDFA1-CFCB-4D70-9CDD-F1933C27883F.html).
+   - To instantly create an API client and credentials for the Akamai APIs you can access, click **Quick**. This client’s API access levels, group roles, and permissions are identical to yours. For details about roles, permissions, and access levels, see [Identity and Access Management](https://control.akamai.com/dl/IDM/IAM/index.html).
+   - To make updates to one or more of the accounts you manage, click **Advanced**. In the *Details* section, select **Let this client manage multiple accounts** . For details, see [Manage multiple accounts with one API client](https://control.akamai.com/wh/CUSTOMER/AKAMAI/en-US/WEBHELP/identity-management/idm-help/GUID-D05CDFA1-CFCB-4D70-9CDD-F1933C27883F.html).
 
 The client’s name, description, and notification list populate for you in the *Details* section. You can change this information at any time. The set of credentials that appears in the *Credentials* section includes the client token and client secret needed to authenticate the extension.
 
 4. To check that you have `READ-WRITE` access to the Property Manager API:
-   a. Under *Details*, click **Show additional details**.
-   b. Scroll through the APIs for Property Manager.
-   c. If the API isn’t listed, contact your account representative for assistance.
+   1. Under *Details*, click **Show additional details**.
+   1. Scroll through the APIs for Property Manager.
+   1. If the API isn’t listed, contact your account representative for assistance.
 5. Click **Download**, then add the credentials to the `.edgerc` file.
 
 #### Add credentials to the .edgerc file
@@ -46,10 +46,10 @@ Configure the EdgeGrid credential file that includes client tokens and client se
 1. Install the Property Manager extension by clicking the install link in the marketplace, or install it from the **Extensions** tab in Visual Studio Code.
 2. In **Command Palette**, enter `Edit Rules`
 3. When you run the extension for the first time, you need to set up your credentials:
-   a. Upload the `.edgerc` file. For MacOS, press **Command+Shift+Dot** to show the hidden files.
-   b. From the menu, select your EdgeGrid credentials that provide access to the properties you want to edit.
-   c. **Optional:** If you created an API client that can manage multiple accounts, enter the **Account Switch Key**.
-   d. Click **Submit**.
+   1. Upload the `.edgerc` file. For MacOS, press **Command+Shift+Dot** to show the hidden files.
+   1. From the menu, select your EdgeGrid credentials that provide access to the properties you want to edit.
+   1. **Optional:** If you created an API client that can manage multiple accounts, enter the **Account Switch Key**.
+   1. Click **Submit**.
 
 To start editing a JSON configuration file, you can either:
 - **Download a rules file** from the platform. Enter an existing property name and look it up with a search button. Once confirmed, select a version and click **Download**.
