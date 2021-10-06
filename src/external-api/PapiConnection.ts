@@ -1,4 +1,4 @@
-//  Copyright 2020. Akamai Technologies, Inc
+//  Copyright 2021. Akamai Technologies, Inc
 //  
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -11,6 +11,10 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
+
+/**
+ * @author Sid Heggadahalli <sheggada>
+ */
 
 import { Authentication } from "./Authentication";
 import * as os from "os";
@@ -82,12 +86,18 @@ export class PapiConnection {
     return this.openClient.get(url, callback);
   }
 
-  public listAvailableCriterias(
-    propertyId: number,
-    propertyVersion: number,
-    callback: any = undefined
-  ): Promise<any> {
+  public listAvailableCriterias(propertyId: string, propertyVersion: number,callback: any = undefined): Promise<any> {
     let url = `/papi/v1/properties/${propertyId}/versions/${propertyVersion}/available-criteria`;
+    return this.openClient.get(url, callback);
+  }
+
+  public listCpcodes(contractId: string, groupId: string, callback: any = undefined) {
+    let url = `/papi/v1/cpcodes?contractId=${contractId}&groupId=${groupId}`;
+    return this.openClient.get(url, callback);
+  }
+
+  public getExternalResources(propertyId: string, propertyVersion: number, callback: any = undefined) {
+    let url = `/papi/v1/properties/${propertyId}/versions/${propertyVersion}/external-resources`;
     return this.openClient.get(url, callback);
   }
 

@@ -1,4 +1,4 @@
-//  Copyright 2020. Akamai Technologies, Inc
+//  Copyright 2021. Akamai Technologies, Inc
 //  
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -12,9 +12,13 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
+/**
+ * @author Sid Heggadahalli <sheggada>
+ */
+
 import * as vscode from "vscode";
 import * as _ from "underscore";
-import { DEFINITION_OF } from "./SnippetGenerator";
+import { DEFINITION_OF, EXTERNAL_RESOURCE_NAMES } from "./SnippetGenerator";
 import { getLogger } from "../FileHelper";
 
 export function verifyNodeName( document: vscode.TextDocument, position: vscode.Position): { isMatch: boolean; matchString?: string, pathArray?: any } {
@@ -26,8 +30,14 @@ export function verifyNodeName( document: vscode.TextDocument, position: vscode.
   if (!stack || stack.length < 3) {
     return { isMatch: false };
   }
-  const nameFrame = stack[stack.length - 2];
-  const indexFrame = stack[stack.length - 1];
+  const stackLen = stack.length;
+  const nameFrame = stack[stackLen - 2];
+  const indexFrame = stack[stackLen - 1];
+  let pathString: string = '';
+  stack.forEach((frame) => {
+    pathString = frame.key? pathString +'\\' + frame.key : pathString +'\\' + frame.index;
+  });
+  getLogger().appendLine(`${pathString}`);
   if (
     nameFrame.key === DEFINITION_OF.BEHAVIORS &&
     indexFrame.colType === ColType.Array
@@ -48,12 +58,51 @@ export function verifyNodeName( document: vscode.TextDocument, position: vscode.
     indexFrame.colType === ColType.Array
   ) {
     return { isMatch: true, matchString: DEFINITION_OF.VARIABLES };
-  } else if ( nameFrame.key === DEFINITION_OF.OPTIONS &&
-      nameFrame.colType === ColType.Object && indexFrame.key && stack.length >= 4) {
+
+    //Checking JSON body for inserting external resources
+  } else if(stackLen >= 4 && stack[stackLen - 4].key && _.isNumber(stack[stackLen-4].index)) {
+      if(stack[stackLen - 4].key?.toLowerCase() === EXTERNAL_RESOURCE_NAMES.cpcode && stack[stackLen - 3].key === 'options' && stack[stackLen - 2].key === 'value' && stack[stackLen - 1].key === 'id') {
+        getLogger().appendLine('isCpcode');
+        return {isMatch: true, matchString: EXTERNAL_RESOURCE_NAMES.cpcode}
+      }
+  } else if(stackLen >= 3 && stack[stackLen - 3].key && _.isNumber(stack[stackLen-3].index)) {
+      if(stack[stackLen - 3].key?.toLowerCase() === 'origin' && stack[stackLen - 2].key === 'options' && stack[stackLen - 1].key === 'netStorage') {
+        getLogger().appendLine('isNetStorage');
+        return {isMatch: true, matchString: EXTERNAL_RESOURCE_NAMES.netStorage}
+      } else if(stack[stackLen - 3].key === 'originCharacteristics' && stack[stackLen - 2].key === 'options' && stack[stackLen - 1].key === 'awsAccessKeyVersionGuid') {
+        getLogger().appendLine('isAwsAccessKeyVersionGuid');
+        return {isMatch: true, matchString: EXTERNAL_RESOURCE_NAMES.awsAccessKey}
+      } else if(stack[stackLen - 3].key === 'originCharacteristics' && stack[stackLen - 2].key === 'options' && stack[stackLen - 1].key === 'gcsAccessKeyVersionGuid') {
+        getLogger().appendLine('isGcsAccessKeyVersionGuid');
+        return {isMatch: true, matchString: EXTERNAL_RESOURCE_NAMES.gcsAccessKey}
+      } else if(stack[stackLen - 3].key === 'adaptiveAcceleration' && stack[stackLen - 2].key === 'options' && stack[stackLen - 1].key === 'source') {
+        getLogger().appendLine('isAdaptiveAcceleration');
+        return {isMatch: true, matchString: EXTERNAL_RESOURCE_NAMES.adaptiveAcceleration}
+      } else if(stack[stackLen - 3].key === 'segmentedContentProtection' && stack[stackLen - 2].key === 'options' && stack[stackLen - 1].key === 'revokedListId') {
+        getLogger().appendLine('isTokenRevocationBlacklist');
+        return {isMatch: true, matchString: EXTERNAL_RESOURCE_NAMES.tokenRevocationBlacklist}
+      } else if(stack[stackLen - 3].key === 'edgeWorker' && stack[stackLen - 2].key === 'options' && stack[stackLen - 1].key === 'edgeWorkerId') {
+        getLogger().appendLine('isEdgeWorker');
+        return {isMatch: true, matchString: EXTERNAL_RESOURCE_NAMES.edgeWorker};
+      } else if(stack[stackLen - 3].key?.toLowerCase() === 'datastream' && stack[stackLen - 2].key === 'options' && stack[stackLen - 1].key === 'logStreamName') {
+        getLogger().appendLine('islogStream');
+        return {isMatch: true, matchString: EXTERNAL_RESOURCE_NAMES.logStream}
+      } else if(stack[stackLen - 3].key === 'verifyJsonWebTokenForDcp' && stack[stackLen - 2].key === 'options' && stack[stackLen - 1].key === 'jwt') {
+        getLogger().appendLine('isJwtKey');
+        return {isMatch: true, matchString: EXTERNAL_RESOURCE_NAMES.jwtKey}
+      } else if(stack[stackLen - 3].key === 'cloudWrapper' && stack[stackLen - 2].key === 'options' && stack[stackLen - 1].key === 'location') {
+        getLogger().appendLine('isCloudWrapperLocation');
+        return {isMatch: true, matchString: EXTERNAL_RESOURCE_NAMES.cloudWrapperLocation}
+      } else if(stack[stackLen - 3].key === 'customBehavior' && stack[stackLen - 2].key === 'options' && stack[stackLen - 1].key === 'behaviorId') {
+        getLogger().appendLine('isCustomBehavior');
+        return {isMatch: true, matchString: EXTERNAL_RESOURCE_NAMES.customBehavior}
+      }
+  } else if ( nameFrame.key === DEFINITION_OF.OPTIONS && 
+    nameFrame.colType === ColType.Object && indexFrame.key && stackLen >= 4) {
     let pathArray = {
-      0: stack[stack.length-4].key,
-      1: stack[stack.length-3].key,
-      2: stack[stack.length-1].key
+      0: stack[stackLen-4].key,
+      1: stack[stackLen-3].key,
+      2: stack[stackLen-1].key
     };
     return { isMatch: true, matchString: DEFINITION_OF.OPTIONS, pathArray };
   }

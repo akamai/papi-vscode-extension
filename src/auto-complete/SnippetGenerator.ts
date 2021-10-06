@@ -1,4 +1,4 @@
-//  Copyright 2020. Akamai Technologies, Inc
+//  Copyright 2021. Akamai Technologies, Inc
 //  
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -11,6 +11,10 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
+
+/**
+ * @author Sid Heggadahalli <sheggada>
+ */
 
 import * as vscode from 'vscode';
 import { readJsonFile, getLogger } from '../FileHelper';
@@ -27,6 +31,20 @@ export enum DEFINITION_OF {
   CHILDREN = "children",
   VARIABLES = "variables",
   OPTIONS = "options",
+}
+
+export enum EXTERNAL_RESOURCE_NAMES {
+  cpcode = 'cpcode',
+  netStorage = 'netStorage',
+  awsAccessKey = 'awsAccessKey',
+  gcsAccessKey = 'gcsAccessKey',
+  adaptiveAcceleration = 'adaptiveAcceleration',
+  tokenRevocationBlacklist = 'tokenRevocationBlacklist',
+  edgeWorker = 'edgeWorker',
+  logStream = 'logStream',
+  jwtKey = 'jwtKey',
+  cloudWrapperLocation = 'cloudWrapperLocation',
+  customBehavior = 'customBehavior'
 }
 
 const GHOST_VARIABLES = [
@@ -83,7 +101,7 @@ const OPTIONS = "options";
 const DEFAULT = "default";
 
 export class SnippetGenerator {
-  private filepath: string;
+  private extensionPath: string;
   private schema: any;
   private behaviors: string[];
   private criterias: string[];
@@ -95,9 +113,22 @@ export class SnippetGenerator {
   private behaviorDescriptions: any;
   private criteriaDescriptions: any;
 
-  constructor(filepath: string) {
-    this.filepath = filepath;
-    this.schema = readJsonFile(filepath);
+  private externalResourceCpcode: vscode.CompletionItem[];
+  private externalResourceNetStorage: vscode.CompletionItem[];
+  private externalResourceAwsAccessKey: vscode.CompletionItem[];
+  private externalResourceGcsAccessKey: vscode.CompletionItem[];
+  private externalResourceAdaptiveAcceleration: vscode.CompletionItem[];
+  private externalResourceTokenRevocationBlacklist: vscode.CompletionItem[];
+  private externalResourceEdgeWorker: vscode.CompletionItem[];
+  private externalResourceLogStream: vscode.CompletionItem[];
+  private externalResourceJwtKey: vscode.CompletionItem[];
+  private externalResourceCloudWrapperLocation: vscode.CompletionItem[];
+  private externalResourceCustomBehavior: vscode.CompletionItem[];
+    
+  constructor(extensionPath: string, propertyId: string) {
+    this.extensionPath = extensionPath;
+    let schemaPath = extensionPath + `/resources/${propertyId}_papi_schema.json`;
+    this.schema = readJsonFile(schemaPath);
 
     this.behaviors = this.getNames(LIST_OF.BEHAVIOR, DEFINITION_OF.BEHAVIORS);
     console.log(`behavior names length ${this.behaviors.length}`);
@@ -165,7 +196,22 @@ export class SnippetGenerator {
     );
     this.variableCompletionItems = [variableCompletionItem];
 
-    console.log("Snippet generator initialized");
+    //External resources
+    const cpCodePath = extensionPath + `/resources/${propertyId}_cpcodes.json`;
+    this.externalResourceCpcode = this.getExternalResourceCompletionItem(cpCodePath, EXTERNAL_RESOURCE_NAMES.cpcode);
+    const erPath = extensionPath + `/resources/${propertyId}_er.json`;
+    this.externalResourceNetStorage = this.getExternalResourceCompletionItem(erPath, EXTERNAL_RESOURCE_NAMES.netStorage);
+    this.externalResourceAwsAccessKey = this.getExternalResourceCompletionItem(erPath, EXTERNAL_RESOURCE_NAMES.awsAccessKey);
+    this.externalResourceGcsAccessKey = this.getExternalResourceCompletionItem(erPath, EXTERNAL_RESOURCE_NAMES.gcsAccessKey);
+    this.externalResourceAdaptiveAcceleration = this.getExternalResourceCompletionItem(erPath, EXTERNAL_RESOURCE_NAMES.adaptiveAcceleration);
+    this.externalResourceTokenRevocationBlacklist = this.getExternalResourceCompletionItem(erPath, EXTERNAL_RESOURCE_NAMES.tokenRevocationBlacklist);
+    this.externalResourceEdgeWorker = this.getExternalResourceCompletionItem(erPath, EXTERNAL_RESOURCE_NAMES.edgeWorker);
+    this.externalResourceLogStream = this.getExternalResourceCompletionItem(erPath, EXTERNAL_RESOURCE_NAMES.logStream);
+    this.externalResourceJwtKey = this.getExternalResourceCompletionItem(erPath, EXTERNAL_RESOURCE_NAMES.jwtKey);
+    this.externalResourceCloudWrapperLocation = this.getExternalResourceCompletionItem(erPath, EXTERNAL_RESOURCE_NAMES.cloudWrapperLocation);
+    this.externalResourceCustomBehavior = this.getExternalResourceCompletionItem(erPath, EXTERNAL_RESOURCE_NAMES.customBehavior);
+
+    getLogger().appendLine("Autocomplete setup complete");
   }
 
   public getBehaviorCompletionItems(): vscode.CompletionItem[] {
@@ -231,12 +277,39 @@ export class SnippetGenerator {
     return this.variableValueCompletionItems;
   }
 
+  public getExternalResource(name: EXTERNAL_RESOURCE_NAMES): vscode.CompletionItem[] {
+    switch (name) {
+      case EXTERNAL_RESOURCE_NAMES.cpcode:
+        return this.externalResourceCpcode;
+      case EXTERNAL_RESOURCE_NAMES.netStorage:
+        return this.externalResourceNetStorage;
+      case EXTERNAL_RESOURCE_NAMES.awsAccessKey:
+        return this.externalResourceAwsAccessKey;
+      case EXTERNAL_RESOURCE_NAMES.gcsAccessKey:
+        return this.externalResourceGcsAccessKey;
+      case EXTERNAL_RESOURCE_NAMES.adaptiveAcceleration:
+        return this.externalResourceAdaptiveAcceleration;
+      case EXTERNAL_RESOURCE_NAMES.tokenRevocationBlacklist:
+        return this.externalResourceTokenRevocationBlacklist;
+      case EXTERNAL_RESOURCE_NAMES.edgeWorker:
+        return this.externalResourceEdgeWorker;
+      case EXTERNAL_RESOURCE_NAMES.logStream:
+        return this.externalResourceLogStream;
+      case EXTERNAL_RESOURCE_NAMES.jwtKey:
+        return this.externalResourceJwtKey;
+      case EXTERNAL_RESOURCE_NAMES.cloudWrapperLocation:
+        return this.externalResourceCloudWrapperLocation;
+      case EXTERNAL_RESOURCE_NAMES.customBehavior:
+        return this.externalResourceCustomBehavior;
+    }
+  }
+
   public verifyStringOption(jsonPath: any) {
     try {
       let definitionOf = jsonPath[0];
       let name = jsonPath[1];
       let optionName = jsonPath[2];
-      getLogger().appendLine(`${definitionOf}, ${name}, ${optionName}`);
+      // getLogger().appendLine(`${definitionOf}, ${name}, ${optionName}`);
       let optionsDefinition = this.schema[DEFINITIONS][CATALOG][definitionOf][name][PROPERTIES][OPTIONS][PROPERTIES][optionName];
       if(optionsDefinition) {
         if(optionsDefinition.type) {
@@ -250,6 +323,174 @@ export class SnippetGenerator {
       // allow the insertion of the option if the check fails
       return false;
     }
+  }
+
+  private getExternalResourceCompletionItem(path: string, name: EXTERNAL_RESOURCE_NAMES): vscode.CompletionItem[] {
+    const externalResources = readJsonFile(path)["externalResources"];
+    let completionItems: vscode.CompletionItem[] = [];
+    switch (name) {
+      case EXTERNAL_RESOURCE_NAMES.cpcode:
+        getLogger().appendLine(`Generating external completion item: cpcode`);
+        // availableCpCodes
+        return this.getCpcodeCompletionItem(path, name);  
+      case EXTERNAL_RESOURCE_NAMES.netStorage:
+        getLogger().appendLine(`Generating external completion item: netStorage`);
+        try {
+          const availableNetStorageGroups = externalResources["availableNetStorageGroups"];
+          if(availableNetStorageGroups != null) {
+            getLogger().appendLine(`external resources contain netStorage`);
+            availableNetStorageGroups.forEach((netStorage: any) => {
+              const completionItem = new vscode.CompletionItem(`${netStorage.name} - (${netStorage.downloadDomainName})`, vscode.CompletionItemKind.Value);
+              let snippet: any = {downloadDomainName: netStorage.downloadDomainName, cpCode: netStorage.cpCodeList[0].cpCode, g2oToken: netStorage.cpCodeList[0].g2oToken};
+              let snippetString: string = JSON.stringify(snippet, null, 4);
+              completionItem.insertText = new vscode.SnippetString(snippetString);
+              completionItems.push(completionItem);
+            });
+            return completionItems;
+          }
+        } catch(error) {
+          getLogger().appendLine(`Error message ${(error as Error).message}`);
+        }
+        break;
+      case EXTERNAL_RESOURCE_NAMES.awsAccessKey:
+        getLogger().appendLine(`Generating external completion item: awsAccessKey`);
+        const awsAccessKeys = externalResources["awsAccessKeys"];
+        if(awsAccessKeys != null) {
+          getLogger().appendLine(`external resources contain awsAccessKeys`);
+          let values = Object.values(awsAccessKeys);
+          values.forEach((awsAccessKey: any) => {
+            const completionItem = new vscode.CompletionItem(`${awsAccessKey.displayName}`, vscode.CompletionItemKind.Value);
+            completionItem.insertText = new vscode.SnippetString(`"${awsAccessKey.guid}"`);
+            completionItems.push(completionItem);
+          });
+          return completionItems;
+        }
+        break;
+      case EXTERNAL_RESOURCE_NAMES.gcsAccessKey:
+        getLogger().appendLine(`Generating external completion item: gcsAccessKey`);
+        const gcsAccessKeys = externalResources["gcsAccessKeys"];
+        if(gcsAccessKeys != null) {
+          getLogger().appendLine(`external resources contain gcsAccessKeys`);
+          let values = Object.values(gcsAccessKeys);
+          values.forEach((gcsAccessKey: any) => {
+            const completionItem = new vscode.CompletionItem(`${gcsAccessKey.displayName}`, vscode.CompletionItemKind.Value);
+            completionItem.insertText = new vscode.SnippetString(`"${gcsAccessKey.guid}"`);
+            completionItems.push(completionItem);
+          });
+          return completionItems;
+        }
+        break;
+      case EXTERNAL_RESOURCE_NAMES.adaptiveAcceleration:
+        getLogger().appendLine(`Generating external completion item: adaptiveAcceleration`);
+        const adaptiveAcceleration = externalResources["adaptiveAcceleration"];
+        if(adaptiveAcceleration != null) {
+          getLogger().appendLine(`external resources contain awsAccessKeys`);
+          let values = Object.values(adaptiveAcceleration);
+          values.forEach((acc: any) => {
+            const completionItem = new vscode.CompletionItem(`${acc.name}`, vscode.CompletionItemKind.Value);
+            completionItem.insertText = new vscode.SnippetString(`"${acc.id}"`);
+            completionItems.push(completionItem);
+          });
+          return completionItems;
+        }
+        break;
+      case EXTERNAL_RESOURCE_NAMES.tokenRevocationBlacklist:
+        getLogger().appendLine(`Generating external completion item: tokenRevocationBlacklist`);
+        const tokenRevocationBlacklist = externalResources["tokenRevocationBlacklist"];
+        if(tokenRevocationBlacklist != null) {
+          getLogger().appendLine(`external resources contain tokenRevocationBlacklist`);
+          let values = Object.values(tokenRevocationBlacklist);
+          values.forEach((token: any) => {
+            const completionItem = new vscode.CompletionItem(`${token.name}`, vscode.CompletionItemKind.Value);
+            completionItem.insertText = new vscode.SnippetString(`${token.id}`);
+            completionItems.push(completionItem);
+          });
+          return completionItems;
+        }
+        break;
+      case EXTERNAL_RESOURCE_NAMES.edgeWorker:
+        getLogger().appendLine(`Generating external completion item: edgeWorker`);
+        const edgeWorkers = externalResources["edgeWorkers"];
+        if(edgeWorkers != null) {
+          getLogger().appendLine(`external resources contain edgeWorker`);
+          let values = Object.values(edgeWorkers);
+          values.forEach((worker: any) => {
+            const completionItem = new vscode.CompletionItem(`${worker.name}`, vscode.CompletionItemKind.Value);
+            completionItem.insertText = new vscode.SnippetString(`"${worker.id}"`);
+            completionItems.push(completionItem);
+          });
+          return completionItems;
+        }
+        break;
+      case EXTERNAL_RESOURCE_NAMES.logStream:
+        getLogger().appendLine(`Generating external completion item: logStream`);
+        const logStream = externalResources["logStream"];
+        if(logStream != null) {
+          getLogger().appendLine(`external resources contain logStream`);
+          let values = Object.values(logStream);
+          values.forEach((stream: any) => {
+            const completionItem = new vscode.CompletionItem(`${stream.name}`, vscode.CompletionItemKind.Value);
+            completionItem.insertText = new vscode.SnippetString(`${stream.id}`);
+            completionItems.push(completionItem);
+          });
+          return completionItems;
+        }
+        break;
+      case EXTERNAL_RESOURCE_NAMES.jwtKey:
+        getLogger().appendLine(`Generating external completion item: jwtKey`);
+        const jwtKeyWithAlg = externalResources["jwtKeyWithAlg"];
+        if(jwtKeyWithAlg != null) {
+          getLogger().appendLine(`external resources contain jwtKey`);
+          let values = Object.values(jwtKeyWithAlg);
+          values.forEach((jwtKey: any) => {
+            const completionItem = new vscode.CompletionItem(`${jwtKey.name}`, vscode.CompletionItemKind.Value);
+            completionItem.insertText = new vscode.SnippetString(`"${jwtKey.jwt}"`);
+            completionItems.push(completionItem);
+          });
+          return completionItems;
+        }
+        break;
+      case EXTERNAL_RESOURCE_NAMES.cloudWrapperLocation:
+        getLogger().appendLine(`Generating external completion item: cloudWrapperLocation`);
+        const cloudWrapperLocation = externalResources["cloudWrapperLocation"];
+        if(cloudWrapperLocation != null) {
+          getLogger().appendLine(`external resources contain cloudWrapperLocation`);
+          let values = Object.values(cloudWrapperLocation);
+          values.forEach((wrapper: any) => {
+            const completionItem = new vscode.CompletionItem(`${wrapper.location}`, vscode.CompletionItemKind.Value);
+            completionItem.insertText = new vscode.SnippetString(`"${wrapper.sroMapName}"`);
+            completionItems.push(completionItem);
+          });
+          return completionItems;
+        }
+        break;
+      case EXTERNAL_RESOURCE_NAMES.customBehavior:
+        getLogger().appendLine(`Generating external completion item: customBehavior`);
+        const customBehaviors = externalResources["customBehaviors"];
+        if(customBehaviors != null) {
+          getLogger().appendLine(`external resources contain customBehavior`);
+          let values = Object.values(customBehaviors);
+          values.forEach((behavior: any) => {
+            const completionItem = new vscode.CompletionItem(`${behavior.name}`, vscode.CompletionItemKind.Value);
+            completionItem.insertText = new vscode.SnippetString(`"${behavior.behaviorId}"`);
+            completionItems.push(completionItem);
+          });
+          return completionItems;
+        }
+        break;
+    }
+    return [];
+  }
+
+  private getCpcodeCompletionItem(path: string, name: EXTERNAL_RESOURCE_NAMES): vscode.CompletionItem[] {
+    const cpCodes = readJsonFile(path);
+    let completionItems: vscode.CompletionItem[] = [];
+    cpCodes.forEach((cpCode: any) => {
+      const completionItem = new vscode.CompletionItem(`${cpCode.name} - ${cpCode.id}`, vscode.CompletionItemKind.Value);
+      completionItem.insertText = new vscode.SnippetString(`${cpCode.id}`);
+      completionItems.push(completionItem);
+    });
+    return completionItems;
   }
 
   private getBehaviors(): string[] {
@@ -268,7 +509,7 @@ export class SnippetGenerator {
       let snippet = this.createSnippetBody(optionsDefinition, name);
       return JSON.stringify(snippet, null, 4);
     } catch (err) {
-      throw new Error(err);
+      throw new Error((err as Error).message);
     }
   }
 
@@ -292,7 +533,7 @@ export class SnippetGenerator {
       throw new Error(`Unable to find the ${listOf} names`);
     } catch (err) {
       console.error(err);
-      throw new Error(err.message);
+      throw new Error((err as Error).message);
     }
   }
 
@@ -340,7 +581,7 @@ export class SnippetGenerator {
         textCompletionList[i] = snippetCompletion;
       } catch (err) {
         console.log(`error during generating snippet for ${objectNames[i]}`);
-        console.error(err.message);
+        console.error((err as Error).message);
       }
     }
     console.log(`Text completion list created for '${objectType}'`);

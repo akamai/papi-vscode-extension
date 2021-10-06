@@ -1,4 +1,4 @@
-//  Copyright 2020. Akamai Technologies, Inc
+//  Copyright 2021. Akamai Technologies, Inc
 //  
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -11,6 +11,10 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
+
+/**
+ * @author Sid Heggadahalli <sheggada>
+ */
 
 import * as vscode from "vscode";
 import { getEdgercFromSettings, EdgercSection, } from "./InputHelper";
@@ -120,7 +124,7 @@ export function displayPage(panel: vscode.WebviewPanel, extensionUri: vscode.Uri
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <title>Akamai Property Manager</title>
     <link rel='stylesheet' type='text/css' href='${styleUri}' media='screen' />
-    <script src='https://code.jquery.com/jquery-1.9.1.min.js'></script>
+    <script src='https://code.jquery.com/jquery-3.6.0.min.js'></script>
     <script src='${scriptUri}'></script>
   </head>
   
@@ -145,7 +149,7 @@ export function displayPage(panel: vscode.WebviewPanel, extensionUri: vscode.Uri
           </select>
           <label for='accountSwitchKey'>Optional: Account Switch Key</label>
           <input type='text' id='accountSwitchKey' name='accountSwitchKey' placeholder='Enter the key'>
-          <button id='button0'>Authenticate</button>
+          <button type="button" id='button0'>Authenticate</button>
         </form>
       </div>
   
@@ -163,7 +167,7 @@ export function displayPage(panel: vscode.WebviewPanel, extensionUri: vscode.Uri
             <select id='propertyVersion' name='propertyVersion' required>
               <option value = ''>-- select a version --</option>
             </select>
-            <button id='button1'>Download</button>
+            <button type="button" id='button1'>Download</button>
           </form>
         </div>
   
@@ -174,8 +178,8 @@ export function displayPage(panel: vscode.WebviewPanel, extensionUri: vscode.Uri
             <input type='text' id='filePath' name='filePath' required>
             <label for='propertyName1'>Property name</label>
             <input type='text' id='propertyName1' name='propertyName1' required readonly>
-            <button id='button2'>Edit</button>
-            <button id='button3'>Validate</button>
+            <button type="button" id='button2'>Edit</button>
+            <button type="button" id='button3'>Validate</button>
           </form>
         </div>
       </div>
