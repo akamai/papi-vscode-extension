@@ -1,4 +1,4 @@
-//  Copyright 2020. Akamai Technologies, Inc
+//  Copyright 2021. Akamai Technologies, Inc
 //  
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -11,6 +11,10 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
+
+/**
+ * @author Sid Heggadahalli <sheggada>
+ */
 
 import * as fs from "fs";
 import * as path from "path";
@@ -31,7 +35,7 @@ export function readJsonFile(fullpath: string) {
     let jsonString = readFile(fullpath);
     return JSON.parse(jsonString);
   } catch (error) {
-    throw new Error(error.message);
+    throw new Error((error as Error).message);
   }
 }
 

@@ -1,4 +1,4 @@
-//  Copyright 2020. Akamai Technologies, Inc
+//  Copyright 2021. Akamai Technologies, Inc
 //  
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -12,12 +12,17 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
+/**
+ * @author Sid Heggadahalli <sheggada>
+ */
+
 import * as _ from "underscore";
 import { Authentication } from "./Authentication";
 import * as request from "request";
 import * as AuthHelper from "./AuthHelper";
 import * as url from "url";
 import * as vscode from "vscode";
+import { getLogger } from "../FileHelper";
 
 export class OpenClient {
   private headers: any;
@@ -59,13 +64,7 @@ export class OpenClient {
     return this.request("PUT", path, body, headers, callback);
   }
 
-  private request(
-    method: any,
-    path: string,
-    body: any,
-    headers: any,
-    callback: any
-  ): Promise<any> {
+  private request(method: any, path: string, body: any, headers: any, callback: any): Promise<any> {
     let processResponse = this.processResponse.bind(this);
     let timedPromise = this.timedPromise.bind(this);
     return timedPromise((resolve: any, reject: any) => {
@@ -90,10 +89,10 @@ export class OpenClient {
   }
 
   private send(req: any, callback: any) {
-    console.debug(`Request: \n${JSON.stringify({ req }, null, 4)}`);
+    // getLogger().appendLine(`Request: \n${JSON.stringify({ req }, null, 4)}`);
     let handleRedirect = this.handleRedirect.bind(this);
     request(req, function (error: any, response: any, body: any) {
-      console.debug(`Response: \n${JSON.stringify(response)}`);
+      // getLogger().appendLine(`Response: \n${JSON.stringify(response)}`);
       if (error) {
         callback(error);
         return;
@@ -122,7 +121,7 @@ export class OpenClient {
       method: "GET",
       headers: {
         Accept: "application/json",
-        "User-Agent": "VSCode-Extension v0.9.0",
+        "User-Agent": "VSCode-Extension v1.0.0",
       },
       followRedirect: false,
       body: "",
@@ -140,7 +139,7 @@ export class OpenClient {
     request.path = this.addAccountSwitchKeytoPath(path);
     request.method = method;
     request.headers = headers;
-    // console.debug(request);
+    getLogger().appendLine(JSON.stringify(request));
     if (method === "POST" || method === "PUT") {
       let headers = { "Content-Type": "application/json" };
       Object.assign(headers, request.headers);
@@ -158,28 +157,17 @@ export class OpenClient {
         //No query parameters
         return path + `?accountSwitchKey=${this.accountSwitchKey}`;
       } else if (splitPath.length === 2) {
-        return path + `&accountSwitckKey=${this.accountSwitchKey}`;
+        return path + `&accountSwitchKey=${this.accountSwitchKey}`;
       } else {
         throw new Error(`Malformed request path - '${path}'`);
       }
     }
   }
 
-  private processResponse(
-    request: any,
-    callback: any,
-    error: any,
-    response: any,
-    resolve: any,
-    reject: any
-  ) {
+  private processResponse(request: any, callback: any, error: any, response: any, resolve: any, reject: any ) {
     if (error) {
       reject(new Error(`Request failed: ${error}`));
-    } else if (
-      response &&
-      response.statusCode >= 200 &&
-      response.statusCode < 400
-    ) {
+    } else if (response && response.statusCode >= 200 && response.statusCode < 400 ) {
       if (callback) {
         //if the caller of the request method wants more control over response handling.
         callback(response, resolve, reject);
@@ -191,17 +179,9 @@ export class OpenClient {
         }
       }
     } else {
-      console.error(`Request failed, status code: ${response.statusCode}`);
-      vscode.window.showInformationMessage(
-        `Request failed, status code: ${response.statusCode}` +
-          `\nSee console log for details`
-      );
-      reject(
-        new Error(
-          `Request failed, status code: ${response.statusCode},` +
-            `\nResponse Body: '${response.body}'`
-        )
-      );
+      getLogger().appendLine(`Request failed, status code: ${response.statusCode}`);
+      vscode.window.showInformationMessage(`Request failed, status code: ${response.statusCode}\nSee console log for details`);
+      reject(new Error(`Request failed, status code: ${response.statusCode}.\nResponse Body: '${response.body}'`));
     }
   }
 }

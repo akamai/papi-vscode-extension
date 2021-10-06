@@ -1,4 +1,4 @@
-//  Copyright 2020. Akamai Technologies, Inc
+//  Copyright 2021. Akamai Technologies, Inc
 //  
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -12,9 +12,13 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
+/**
+ * @author Sid Heggadahalli <sheggada>
+ */
+
 import * as vscode from "vscode";
 import {Validator} from "jsonschema";
-import { DEFINITION_OF, SnippetGenerator, } from "./auto-complete/SnippetGenerator";
+import { DEFINITION_OF, EXTERNAL_RESOURCE_NAMES, SnippetGenerator, } from "./auto-complete/SnippetGenerator";
 import { PapiConnection, } from "./external-api/PapiConnection";
 import * as _ from "underscore";
 import { getSettings, getLogger, readJsonFile, SettingsType, writeJsonFile, clearSettings, doesFileExists} from "./FileHelper";
@@ -50,7 +54,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     panel.webview.onDidReceiveMessage(
       (message) => {
-        console.debug(message);
         switch (message.command) {
           case InputHelper.MessageFromWeb.documentReady:
             messageHandler.sendInitialState();
@@ -97,9 +100,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   function setupProviders(propertyId: string, filePath: string) {
-    const schemaPath = `/resources/${propertyId}_papi_schema.json`;
-    const schemaUri = vscode.Uri.joinPath(context.extensionUri, schemaPath);
-    const snippetGenerator = new SnippetGenerator(schemaUri.path);
+    const snippetGenerator = new SnippetGenerator(context.extensionUri.fsPath, propertyId);
     generatorMap.set(filePath, snippetGenerator);
     let completionItemProvider = getCompletionItemProvider(filePath, snippetGenerator);
     context.subscriptions.push(completionItemProvider);
@@ -150,10 +151,10 @@ export function activate(context: vscode.ExtensionContext) {
             const schema = readJsonFile(schemaPath);
               const validation = validator.validate(rules, schema);
               if (validation.errors.length > 0) {
-                throw new Error("Syntax validation failed. Resolve errors in the JSON file.");
+                throw new Error("Local validation failed. Resolve errors in the JSON file.");
               }
           } catch (error) {
-            vscode.window.showInformationMessage(error.message);
+            vscode.window.showInformationMessage((error as Error).message);
             panel?.dispose();
             return;
           }
@@ -223,8 +224,8 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  // all completionItems except variablevalues are created and stored only once since this method runs everytime something is typed.
-  // variablesdefinition can be added/updated dynamically, Hence this completion item is updated everytime a rules doucment is updated
+  // all completionItems except variable values are created and stored only once since this method runs everytime something is typed.
+  // variable definition can be added/updated dynamically, Hence this completion item is updated everytime a rules doucment is updated
   function getCompletionItemProvider(filePath: string, snippetGenerator: SnippetGenerator): vscode.Disposable {
       const completionItemProvider = vscode.languages.registerCompletionItemProvider(
       {
@@ -233,48 +234,68 @@ export function activate(context: vscode.ExtensionContext) {
         pattern: filePath
       },
       {
-        provideCompletionItems(
-          document: vscode.TextDocument,
-          position: vscode.Position,
-          token: vscode.CancellationToken,
-          context: vscode.CompletionContext
-        ) {
-          getLogger().appendLine(filePath);
+        provideCompletionItems(document: vscode.TextDocument, position: vscode.Position,
+          token: vscode.CancellationToken, context: vscode.CompletionContext) {
           let nodeVerification = verifyNodeName(document, position);
-          if (
-            nodeVerification.isMatch &&
-            nodeVerification.matchString === DEFINITION_OF.BEHAVIORS
-          ) {
-            return snippetGenerator.getBehaviorCompletionItems();
-          } else if (
-            nodeVerification.isMatch &&
-            nodeVerification.matchString === DEFINITION_OF.CRITERIA
-          ) {
-            return snippetGenerator.getCriteriaCompletionItems();
-          } else if (
-            nodeVerification.isMatch &&
-            nodeVerification.matchString === DEFINITION_OF.CHILDREN
-          ) {
-            return snippetGenerator.getRuleTemplateCompletionItems();
-          } else if (
-            nodeVerification.isMatch &&
-            nodeVerification.matchString === DEFINITION_OF.VARIABLES
-          ) {
-            return snippetGenerator.getVariablesCompletionItems();
-          } else if (
-            nodeVerification.isMatch &&
-            nodeVerification.matchString === DEFINITION_OF.OPTIONS &&
-            nodeVerification.pathArray && 
-            snippetGenerator.verifyStringOption(nodeVerification.pathArray)
-          ) {
-            return snippetGenerator.getVariableValueCompletionItems();
+          if (!nodeVerification.isMatch) {
+            return;
           }
-        },
+          switch (nodeVerification.matchString) {
+            case DEFINITION_OF.BEHAVIORS:
+              return snippetGenerator.getBehaviorCompletionItems();
+            case DEFINITION_OF.CRITERIA:
+              return snippetGenerator.getCriteriaCompletionItems();
+            case DEFINITION_OF.CHILDREN:
+              return snippetGenerator.getRuleTemplateCompletionItems();
+            case DEFINITION_OF.VARIABLES:
+              return snippetGenerator.getVariablesCompletionItems();
+            case DEFINITION_OF.OPTIONS:
+              if(nodeVerification.pathArray && snippetGenerator.verifyStringOption(nodeVerification.pathArray)) {
+                return snippetGenerator.getVariableValueCompletionItems();
+              }
+              break;
+            // External resources
+            case EXTERNAL_RESOURCE_NAMES.cpcode:
+              getLogger().appendLine(`${JSON.stringify(nodeVerification)}`);
+              return snippetGenerator.getExternalResource(EXTERNAL_RESOURCE_NAMES.cpcode);
+            case EXTERNAL_RESOURCE_NAMES.netStorage:
+              getLogger().appendLine(`${JSON.stringify(nodeVerification)}`);
+              return snippetGenerator.getExternalResource(EXTERNAL_RESOURCE_NAMES.netStorage);
+            case EXTERNAL_RESOURCE_NAMES.awsAccessKey:
+              getLogger().appendLine(`${JSON.stringify(nodeVerification)}`);
+              return snippetGenerator.getExternalResource(EXTERNAL_RESOURCE_NAMES.awsAccessKey);
+            case EXTERNAL_RESOURCE_NAMES.gcsAccessKey:
+              getLogger().appendLine(`${JSON.stringify(nodeVerification)}`);
+              return snippetGenerator.getExternalResource(EXTERNAL_RESOURCE_NAMES.gcsAccessKey);
+            case EXTERNAL_RESOURCE_NAMES.adaptiveAcceleration:
+              getLogger().appendLine(`${JSON.stringify(nodeVerification)}`);
+              return snippetGenerator.getExternalResource(EXTERNAL_RESOURCE_NAMES.adaptiveAcceleration);
+            case EXTERNAL_RESOURCE_NAMES.tokenRevocationBlacklist:
+              getLogger().appendLine(`${JSON.stringify(nodeVerification)}`);
+              return snippetGenerator.getExternalResource(EXTERNAL_RESOURCE_NAMES.tokenRevocationBlacklist);
+            case EXTERNAL_RESOURCE_NAMES.edgeWorker:
+              getLogger().appendLine(`${JSON.stringify(nodeVerification)}`);
+              return snippetGenerator.getExternalResource(EXTERNAL_RESOURCE_NAMES.edgeWorker);
+            case EXTERNAL_RESOURCE_NAMES.logStream:
+              getLogger().appendLine(`${JSON.stringify(nodeVerification)}`);
+              return snippetGenerator.getExternalResource(EXTERNAL_RESOURCE_NAMES.logStream);
+            case EXTERNAL_RESOURCE_NAMES.jwtKey:
+              getLogger().appendLine(`${JSON.stringify(nodeVerification)}`);
+              return snippetGenerator.getExternalResource(EXTERNAL_RESOURCE_NAMES.jwtKey);
+            case EXTERNAL_RESOURCE_NAMES.cloudWrapperLocation:
+              getLogger().appendLine(`${JSON.stringify(nodeVerification)}`);
+              return snippetGenerator.getExternalResource(EXTERNAL_RESOURCE_NAMES.cloudWrapperLocation);
+            case EXTERNAL_RESOURCE_NAMES.customBehavior:
+              getLogger().appendLine(`${JSON.stringify(nodeVerification)}`);
+              return snippetGenerator.getExternalResource(EXTERNAL_RESOURCE_NAMES.customBehavior);
+          }
+        }
       }
     );
     return completionItemProvider;
   }
 
+  // variables list is updated when a new file is loaded
   vscode.window.onDidChangeActiveTextEditor((editor: vscode.TextEditor | undefined) => {
     if(editor) {
       let ruleTreeString = editor.document.getText();
@@ -287,6 +308,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
+  //variables list is updated when a file is saved
   vscode.workspace.onDidSaveTextDocument((document: vscode.TextDocument) => {
     const ruleTreeString = document.getText();
     let filePath = document.uri.fsPath;
@@ -306,6 +328,7 @@ export function activate(context: vscode.ExtensionContext) {
       let filePath = document.uri.fsPath;
       let snippetGenerator = generatorMap.get(filePath);
       if(snippetGenerator) {
+        const devDocLink = 'https://developer.akamai.com/api/core_features/property_manager/vlatest.html#'
         if (jsonValue.definitionOf === DEFINITION_OF.BEHAVIORS) {
           if (jsonValue.type === "options" && jsonValue.parentValue) {
             let behaviorDetails = snippetGenerator.getBehaviorDescriptions()[
@@ -317,11 +340,11 @@ export function activate(context: vscode.ExtensionContext) {
               ],
             };
           } else if (jsonValue.type === "name") {
-            let behaviorDetails = snippetGenerator.getBehaviorDescriptions()[
-              jsonValue.value
-            ];
+            let behaviorDetails = snippetGenerator.getBehaviorDescriptions()[jsonValue.value];
+            let value = (jsonValue.value).toLowerCase();
+            const details = ` [...more details](${devDocLink+value})`;
             return {
-              contents: [behaviorDetails["description"]],
+              contents: [behaviorDetails["description"] + details],
             };
           }
         } else if (jsonValue.definitionOf === DEFINITION_OF.CRITERIA) {
@@ -333,11 +356,11 @@ export function activate(context: vscode.ExtensionContext) {
               contents: [criteriaDetails[jsonValue.value]["description"]],
             };
           } else if (jsonValue.type === "name") {
-            let criteriaDetails = snippetGenerator.getCriteriaDescriptions()[
-              jsonValue.value
-            ];
+            let criteriaDetails = snippetGenerator.getCriteriaDescriptions()[jsonValue.value];
+            let value = (jsonValue.value).toLowerCase();
+            const details = ` [...more details](${devDocLink+value})`;
             return {
-              contents: [criteriaDetails["description"]],
+              contents: [criteriaDetails["description"] + details],
             };
           }
         }
@@ -354,6 +377,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 // this method is called when your extension is deactivated
 export function deactivate(context: vscode.ExtensionContext) {
-  clearSettings(SettingsType.workspace);
-  clearSettings(SettingsType.local);
+  const schemas = getSettings(SettingsType.user)
+  const vscodeConfiguration = vscode.workspace.getConfiguration();
+  vscodeConfiguration.update("json.schemas", schemas, vscode.ConfigurationTarget.Global).then(() => {
+    clearSettings(SettingsType.workspace);
+    clearSettings(SettingsType.local);
+  });
 }

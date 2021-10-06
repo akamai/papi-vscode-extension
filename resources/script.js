@@ -30,10 +30,14 @@ window.addEventListener('message', event => {
       case 'propertyNotFound':
         propertyNotFound();
         break;
+      case 'searchError':
+        searchError();
 
       // make sure the message is sent after edgercConfigured to get productId from papi
       case 'setRulesFiles':
         setRulesFiles(message);
+        break;
+      case 'settingUpProviders':
         break;
     }
   });
@@ -254,6 +258,19 @@ function propertyNotFound() {
   const article = document.querySelector('#crossUri');
   crossChild.src = article.dataset.uri;
   crossChild.setAttribute("id", "search-cross");
+  parentNode.setAttribute('style', 'padding-top: 3px;');
+  parentNode.replaceChild(crossChild, loadChild);
+  parentNode.disabled = false;
+  document.getElementById('propertyName').disabled = false;
+}
+
+function searchError() {
+  const loadChild = document.getElementById('search-load');
+  const parentNode = loadChild.parentNode;
+  const crossChild = document.createElement('img');
+  const article = document.querySelector('#searchUri');
+  crossChild.src = article.dataset.uri;
+  crossChild.setAttribute("id", "search-item");
   parentNode.setAttribute('style', 'padding-top: 3px;');
   parentNode.replaceChild(crossChild, loadChild);
   parentNode.disabled = false;

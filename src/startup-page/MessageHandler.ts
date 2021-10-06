@@ -1,4 +1,4 @@
-//  Copyright 2020. Akamai Technologies, Inc
+//  Copyright 2021. Akamai Technologies, Inc
 //  
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -12,6 +12,10 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
+/**
+ * @author Sid Heggadahalli <sheggada>
+ */
+
 import * as vscode from "vscode";
 import * as _ from "underscore";
 import { getLogger, getSettings, saveSettings, SettingsType, writeJsonFile } from "../FileHelper";
@@ -19,6 +23,8 @@ import { PapiConnection } from "../external-api/PapiConnection";
 import { Authentication } from "../external-api/Authentication";
 import * as InputHelper from "./InputHelper";
 import { getEdgercState, FileInformation, EdgercInformation } from "./Initializer";
+import { identity } from "underscore";
+import {createSupportingFiles} from "../auto-complete/EnvironmentCreator"
 
 //Contains methods to take actions based on the messages received from the webapp
 export class MessageHandler {
@@ -84,11 +90,10 @@ export class MessageHandler {
   }
 
   public searchProperty(propertyName: string) {
+    propertyName = propertyName.trim();
     this.getPapi().getProperty(propertyName).then((propertyResult: any) => {
       if (propertyResult.versions.items.length === 0) {
-        vscode.window.showInformationMessage(
-          `Couldn't find property '${propertyName}.'`
-        );
+        vscode.window.showInformationMessage(`Couldn't find property '${propertyName}.'`);
         this.panel.webview.postMessage({command: "propertyNotFound"});
         return;
       }
@@ -114,14 +119,16 @@ export class MessageHandler {
         versions: versions,
       });
     })
-    .catch((error: any) => console.error(error));
+    .catch((error: any) => {
+      getLogger().appendLine(error);
+      this.panel.webview.postMessage({command: "searchError"});
+      return;
+    })
   }
 
   public downloadRules(propertyId: string, version: number): Promise<string> {
     return new Promise((resolve, reject) => {
-      this.getPapi()
-      .getPropertyVersionRules(propertyId, version)
-      .then((response: any) => {
+      this.getPapi().getPropertyVersionRules(propertyId, version).then((response: any) => {
         const saveOptions: vscode.SaveDialogOptions = {
           saveLabel: 'Save papi rules',
           filters: {
@@ -144,26 +151,26 @@ export class MessageHandler {
               filePath: uri.path
             };
             saveSettings({[uri.path]: fileInfo}, SettingsType.workspace);
-            resolve(this.setUpRulesEditor(propertyId, version, uri.path));
+            resolve(this.setUpRulesEditor(propertyId, version, response.contractId, response.groupId, uri.path));
           } else {
             this.panel.dispose();
           }
         });
+      }).catch((error: any) => {
+        getLogger().appendLine((error as Error).message);
+        reject(error);
       })
-      .catch((error: any) => reject(error));
     });
   }
 
   public useLocalRules(fileInfo: FileInformation): Promise<string> {
     saveSettings({[fileInfo.filePath]: fileInfo}, SettingsType.workspace);
-    return Promise.resolve(this.setUpRulesEditor(fileInfo.propertyId, fileInfo.propertyVersion, fileInfo.filePath));
+    return Promise.resolve(this.setUpRulesEditor(fileInfo.propertyId, fileInfo.propertyVersion, fileInfo.contractId, fileInfo.groupId, fileInfo.filePath));
   }
 
-  public setUpRulesEditor(propertyId: string, version: number, filePath: string): Promise<string> {
+  public setUpRulesEditor(propertyId: string, version: number, contractId: string, groupId: string, filePath: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      this.getPapi()
-      .listAvailableBehaviors(propertyId, version)
-      .then((response: any) => {
+      this.getPapi().listAvailableBehaviors(propertyId, version).then((response: any) => {
         let productId: string = response.productId;
         let ruleFormat: string = response.ruleFormat;
         saveSettings(
@@ -177,65 +184,13 @@ export class MessageHandler {
         );
         // send large data into garbage collection
         response = null;
-        resolve(this.setupJsonSchema(propertyId, productId, ruleFormat, filePath));
-      })
-      .catch((error: any) => {
-        reject(error);
-      });
-    });
-  }
-
-
-  public setupJsonSchema(propertyId: string, productId: string, ruleFormat: string, filePath: string): Promise<string> {
-    // GET papi json schema
-    return new Promise((resolve, reject) => {
-      this.getPapi()
-      .getPapiSchema(productId, ruleFormat)
-      .then((response: any) => {
-        const schemaPath = `/resources/${propertyId}_papi_schema.json`;
-        const schemaUri = vscode.Uri.joinPath(this.extensionUri, schemaPath);
-        writeJsonFile(schemaUri.path, response);
-        this.configJsonSchema(filePath, schemaUri.path);
-        resolve(filePath);
+        resolve(createSupportingFiles(this.getPapi(),propertyId, version, contractId, groupId, productId, ruleFormat, filePath, this.extensionUri));
       })
       .catch((error) => {
-        vscode.window.showErrorMessage(error.message);
+        getLogger().appendLine((error as Error).message);
         reject(error);
       });
     });
-  }
-
-  private configJsonSchema(filePath: string, schemaPath: string) {
-    if(schemaPath.charAt(0) === '/') {
-      schemaPath = schemaPath.substr(1, schemaPath.length);
-    }
-    const schemaConfig = {
-      "fileMatch": [
-        filePath
-      ],
-      "url": schemaPath
-    };
-    const vscodeConfiguration = vscode.workspace.getConfiguration();
-    const schemas = vscodeConfiguration.get("json.schemas");
-    if(_.isObject(schemas) && _.isArray(schemas)) {
-      let replacementIndices: number[] = [];
-      for(let i = 0; i < schemas.length; i++) {
-        if(_.isObject(schemas[i].fileMatch) && _.isArray(schemas[i].fileMatch)){
-          schemas[i].fileMatch.forEach((element: string) => {
-            if(element === filePath) {
-              replacementIndices.push(i);
-            }
-          });
-        }
-      }
-      replacementIndices.forEach(index => {
-        schemas.splice(index, 1);
-      });
-      schemas.push(schemaConfig);
-      vscodeConfiguration.update("json.schemas", schemas, vscode.ConfigurationTarget.Global);
-    } else {
-      vscodeConfiguration.update("json.schemas", [schemaConfig], vscode.ConfigurationTarget.Global);
-    }
   }
 
   private getPapi(): PapiConnection {

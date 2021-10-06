@@ -3,6 +3,7 @@ When you deploy web assets to the Akamai network, you create rules that tell Aka
 
 ## Features
 - Editing rules, adding behaviors and criteria
+- Integration with external, non-Property Manager resources such as CP codes or NetStorage groups
 - Syntax highlighting
 - Syntax autocomplete based on your Akamai product
 - Inline JSON syntax checker
@@ -66,7 +67,22 @@ This feature also lists possible option values.
 
 ![gifcountry](/media/gifcountry.gif)
 
-> **NOTE**: For some configuration elements, you might need to access other Akamai resources outside of this extension, such as [CP codes](https://developer.akamai.com/api/core_features/cp_codes_reporting_groups/v1.html), [Site Shield maps](https://developer.akamai.com/api/cloud_security/site_shield/v1.html), or [hostnames](https://developer.akamai.com/api/core_features/edge_hostnames/v1.html). We plan to integrate external resources in future releases.
+### External resources
+
+In some behaviors, you need to specify information that comes from the Akamai applications other than Property Manager. Instead of running separate API or CLI calls to get that data, navigate to the option value and press **Control+Space**. This gets a list of external resources available for the property ID and version associated with your rule tree.
+
+Supported external resources:
+
+- Content Provider (CP) codes
+- NetStorage groups for the `originServer` behavior
+- AWS and GCS access keys for the `originCharacteristics` behavior
+- Beacon data sources for the `adaptiveAcceleration` behavior
+- Revocation lists for the `segmentedContentProtection` behavior
+- EdgeWorker IDs
+- Stream names for the `datastream` behavior
+- JWT key locations for the `verifyJsonWebToken` behavior
+- Locations for the `cloudWrapper` behavior
+- Custom behavior IDs
 
 ## Validation
 Make sure your JSON file is correct before deploying it on the Akamai platform. The validation returns a list of errors and warnings that point you directly to the lines of code you need to fix.
